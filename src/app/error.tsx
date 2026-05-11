@@ -13,7 +13,11 @@ interface ErrorPageProps {
  */
 export default function DashboardError({ error, reset }: ErrorPageProps) {
   useEffect(() => {
-    console.error('Dashboard error:', error)
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Dashboard error:', error)
+    } else if (error.digest) {
+      console.error('Dashboard error digest:', error.digest)
+    }
   }, [error])
 
   return (
