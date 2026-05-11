@@ -10,6 +10,7 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
 import { MoreHorizontalIcon, PencilIcon, Trash2Icon } from 'lucide-react'
+import { formatAmount, formatDate } from '@/lib/formatters'
 
 interface ExpenseRowProps {
   expense: Expense
@@ -17,22 +18,6 @@ interface ExpenseRowProps {
   onDelete: (expense: Expense) => void
   /** Animation stagger delay in ms */
   animationDelay?: number
-}
-
-function formatAmount(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount)
-}
-
-function formatDate(dateStr: string): string {
-  // dateStr is YYYY-MM-DD
-  const [year, month, day] = dateStr.split('-').map(Number)
-  const date = new Date(year, month - 1, day)
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
 /**

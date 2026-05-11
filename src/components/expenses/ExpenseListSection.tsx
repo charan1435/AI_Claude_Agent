@@ -14,8 +14,6 @@ import { AddExpenseButton } from '@/components/dashboard/AddExpenseButton'
 interface ExpenseListSectionProps {
   expenses: Expense[]
   hasActiveFilter: boolean
-  /** Called from outside to open add dialog (from the dashboard header CTA) */
-  openAddDialog?: boolean
 }
 
 /**
