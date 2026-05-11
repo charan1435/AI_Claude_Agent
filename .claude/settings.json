@@ -112,19 +112,19 @@
             "type": "command",
             "command": "bash .claude/hooks/post/screenshot-capture.sh",
             "shell": "bash",
-            "timeout": 120,
+            "timeout": 180,
             "if": "Bash(npm run dev*, npm run build*, next dev*, next build*)",
             "statusMessage": "Capturing screenshots",
-            "async": true
+            "async": false
           },
           {
             "type": "command",
             "command": "bash .claude/hooks/post/screenshot-compare.sh",
             "shell": "bash",
-            "timeout": 60,
+            "timeout": 90,
             "if": "Bash(npm run dev*, npm run build*, next dev*, next build*)",
-            "statusMessage": "Comparing screenshots to reference",
-            "async": true
+            "statusMessage": "Self-review / compare screenshots",
+            "async": false
           }
         ]
       }
