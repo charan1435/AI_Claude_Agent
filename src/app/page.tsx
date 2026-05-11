@@ -1,65 +1,164 @@
-import Image from "next/image";
+import { Suspense } from 'react'
+import { createServerClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+import { AppHeader } from '@/components/layout/AppHeader'
+import { MonthlyTotal } from '@/components/dashboard/MonthlyTotal'
+import { CategoryBreakdown } from '@/components/dashboard/CategoryBreakdown'
+import { ExpenseListSection } from '@/components/expenses/ExpenseListSection'
+import type { Expense } from '@/types/expense'
+import type { ExpenseCategory } from '@/lib/validation/expense'
 
-export default function Home() {
+interface DashboardSearchParams {
+  category?: string
+  q?: string
+}
+
+/**
+ * Dashboard — server component.
+ * Fetches summary + expense list server-side using the cookie-bound Supabase client.
+ * Reads ?category= and ?q= from searchParams.
+ */
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<DashboardSearchParams>
+}) {
+  const supabase = await createServerClient()
+
+  // Verify auth (middleware handles redirect, but belt-and-suspenders)
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    redirect('/login')
+  }
+
+  const params = await searchParams
+  const categoryFilter = params.category as ExpenseCategory | undefined
+  const searchQuery = params.q
+
+  // ── Fetch summary ──────────────────────────────────────────────────
+  // Call the Supabase client directly from the server component
+  // rather than going through the API route (avoids cookie forwarding complexity).
+  const now = new Date()
+  const year = now.getUTCFullYear()
+  const month = now.getUTCMonth() + 1
+  const monthStart = `${year}-${String(month).padStart(2, '0')}-01`
+  const nextMonth = month === 12 ? 1 : month + 1
+  const nextYear = month === 12 ? year + 1 : year
+  const monthEnd = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`
+
+  // Fetch monthly summary via direct Supabase query
+  const { data: monthlyExpenses } = await supabase
+    .from('expenses')
+    .select('amount, category')
+    .gte('spent_on', monthStart)
+    .lt('spent_on', monthEnd)
+
+  const byCategory: Record<ExpenseCategory, number> = {
+    Food: 0,
+    Transport: 0,
+    Bills: 0,
+    Other: 0,
+  }
+  let monthTotal = 0
+
+  for (const row of monthlyExpenses ?? []) {
+    const cat = row.category as ExpenseCategory
+    const amt = Number(row.amount)
+    byCategory[cat] = (byCategory[cat] ?? 0) + amt
+    monthTotal += amt
+  }
+
+  // ── Fetch expense list ──────────────────────────────────────────────
+  let query = supabase
+    .from('expenses')
+    .select('*')
+    .order('spent_on', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(100)
+
+  if (categoryFilter) {
+    query = query.eq('category', categoryFilter)
+  }
+
+  if (searchQuery) {
+    query = query.ilike('note', `%${searchQuery}%`)
+  }
+
+  const { data: expenses } = await query
+
+  // ── Month label ─────────────────────────────────────────────────────
+  const monthLabel = now.toLocaleDateString('en-US', {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  })
+
+  const hasActiveFilter = !!(categoryFilter || searchQuery)
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className="min-h-screen bg-paper flex flex-col">
+      <AppHeader monthLabel={monthLabel} />
+
+      <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-8">
+        {/* ── Summary section ─────────────────────────────────────── */}
+        <section aria-label="Monthly summary" className="mb-8">
+          <MonthlyTotal total={monthTotal} />
+
+          <div className="my-6 border-t border-hairline" />
+
+          <Suspense
+            fallback={
+              <div className="grid grid-cols-4 gap-6">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="flex flex-col gap-2">
+                    <div className="h-3 w-16 bg-hairline rounded-sm animate-pulse" />
+                    <div className="h-4 w-20 bg-hairline rounded-sm animate-pulse" />
+                    <div className="h-1 bg-hairline rounded-sm animate-pulse" />
+                  </div>
+                ))}
+              </div>
+            }
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+            <CategoryBreakdown byCategory={byCategory} total={monthTotal} />
+          </Suspense>
+        </section>
+
+        {/* ── Expense list section ────────────────────────────────── */}
+        <div className="border-t border-hairline mb-6" />
+
+        <Suspense
+          fallback={
+            <div className="flex flex-col gap-0">
+              <div className="py-3 border-b border-hairline flex gap-4">
+                <div className="h-4 w-12 bg-hairline rounded-sm animate-pulse" />
+                <div className="h-4 w-16 bg-hairline rounded-sm animate-pulse" />
+                <div className="h-4 w-20 bg-hairline rounded-sm animate-pulse" />
+                <div className="h-4 flex-1 bg-hairline rounded-sm animate-pulse" />
+              </div>
+              <div className="py-3 border-b border-hairline flex gap-4">
+                <div className="h-4 w-12 bg-hairline rounded-sm animate-pulse" />
+                <div className="h-4 w-16 bg-hairline rounded-sm animate-pulse" />
+                <div className="h-4 w-20 bg-hairline rounded-sm animate-pulse" />
+                <div className="h-4 flex-1 bg-hairline rounded-sm animate-pulse" />
+              </div>
+              <div className="py-3 border-b border-hairline flex gap-4">
+                <div className="h-4 w-12 bg-hairline rounded-sm animate-pulse" />
+                <div className="h-4 w-16 bg-hairline rounded-sm animate-pulse" />
+                <div className="h-4 w-20 bg-hairline rounded-sm animate-pulse" />
+                <div className="h-4 flex-1 bg-hairline rounded-sm animate-pulse" />
+              </div>
+            </div>
+          }
+        >
+          <ExpenseListSection
+            expenses={(expenses ?? []) as Expense[]}
+            hasActiveFilter={hasActiveFilter}
+          />
+        </Suspense>
       </main>
     </div>
-  );
+  )
 }
