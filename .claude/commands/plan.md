@@ -167,5 +167,19 @@ Features:  [count] identified
 Modules:   [list activated]
 Output:    .claude/context/plan-output.md
 
-Next step: run /jira
+Handing off to /commit so you can review and commit the plan output...
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+## Step 10 — Hand off to /commit (mandatory)
+
+Invoke the commit skill so the user can review the new plan-output.md and
+commit it under their explicit confirmation:
+
+  Skill(skill="commit")
+
+Do NOT skip this step. Do NOT print "next step: run /jira" before /commit
+returns. The /commit flow will surface the pending changes, propose commit
+messages, and ask the user whether to commit and whether to push.
+
+After /commit returns, then tell the user:
+  "Next phase: run /jira"

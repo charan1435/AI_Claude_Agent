@@ -296,5 +296,17 @@ Required GitHub Secrets to set:
   VERCEL_ORG_ID
   VERCEL_PROJECT_ID
 
-Next step: run /review
+Handing off to /commit. Next phase after that: /review
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+
+## Step — Hand off to /commit (mandatory)
+
+After the banner above, invoke the commit skill so the user reviews and
+explicitly confirms before any change is committed or pushed:
+
+  Skill(skill="commit")
+
+Do NOT proceed to the next phase or print any other "next step" message
+before /commit returns. Project policy: no subagent or main command
+commits or pushes on its own.

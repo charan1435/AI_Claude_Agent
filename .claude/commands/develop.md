@@ -228,5 +228,17 @@ Deploy:    [✅ ready / ⚠️ issues found]
 
 Screenshots: .claude/screenshots/feedback/current-state/
 
-Next step: run /cicd
+Handing off to /commit. Next phase after that: /cicd
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+
+## Step — Hand off to /commit (mandatory)
+
+After the banner above, invoke the commit skill so the user reviews and
+explicitly confirms before any change is committed or pushed:
+
+  Skill(skill="commit")
+
+Do NOT proceed to the next phase or print any other "next step" message
+before /commit returns. Project policy: no subagent or main command
+commits or pushes on its own.

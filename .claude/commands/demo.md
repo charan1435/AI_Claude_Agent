@@ -178,4 +178,18 @@ Pre-demo checklist is in DEMO.md.
 Review it before presenting.
 
 You are ready. Good luck! 🚀
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Handing off to /commit so DEMO.md can be reviewed and pushed before the demo..."
+
+
+## Step — Hand off to /commit (mandatory)
+
+After the banner above, invoke the commit skill so the user reviews and
+explicitly confirms before any change is committed or pushed:
+
+  Skill(skill="commit")
+
+Do NOT proceed to the next phase or print any other "next step" message
+before /commit returns. Project policy: no subagent or main command
+commits or pushes on its own.

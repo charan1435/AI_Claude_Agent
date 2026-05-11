@@ -236,5 +236,17 @@ References: [using / not using]
 Styles:     [provided / defaults]
 Output:     .claude/context/ux-output.md
 
-Next step: run /develop
+Handing off to /commit. Next phase after that: /develop
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+
+## Step — Hand off to /commit (mandatory)
+
+After the banner above, invoke the commit skill so the user reviews and
+explicitly confirms before any change is committed or pushed:
+
+  Skill(skill="commit")
+
+Do NOT proceed to the next phase or print any other "next step" message
+before /commit returns. Project policy: no subagent or main command
+commits or pushes on its own.

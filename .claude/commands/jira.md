@@ -118,5 +118,17 @@ Tasks:   [count] created
 All tickets assigned to you.
 Output:  .claude/context/jira-output.md
 
-Next step: run /adr
+Handing off to /commit. Next phase after that: /adr
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+
+## Step — Hand off to /commit (mandatory)
+
+After the banner above, invoke the commit skill so the user reviews and
+explicitly confirms before any change is committed or pushed:
+
+  Skill(skill="commit")
+
+Do NOT proceed to /adr or print any other "next step" message before
+/commit returns. Project policy: no subagent or main command commits or
+pushes on its own.
