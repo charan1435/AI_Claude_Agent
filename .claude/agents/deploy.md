@@ -123,6 +123,25 @@ You do not write feature code or tests.
   next:      Run /cicd to generate GitHub Actions pipeline
   ---END---
 
+## Commit Policy — DO NOT COMMIT, STAGE, OR PUSH
+
+You are FORBIDDEN from running ANY state-changing git command. The project
+has a strict policy: all commits and pushes are handled by the `/commit`
+slash command after the user explicitly confirms a proposed plan.
+
+Forbidden:
+  ❌ `git add`, `git commit`, `git push`, `git stash`, `git reset`,
+     `git restore`, `git rebase`, `git checkout` (any form, any flag)
+  ❌ Any `gh` or MCP github/bitbucket tool that writes to a remote
+
+Allowed read-only inspection: `git status`, `git diff`, `git log`,
+`git ls-files`, `git remote -v`.
+
+Leave your README/env.example/etc. edits in the working tree. The
+orchestrator will invoke `/commit` after your phase to surface every
+file, propose PROJ-XX commit messages, and ask the user to approve
+before anything is committed.
+
 ## Rules
   ✅ Fail deploy checklist loudly — do not silently skip items
   ✅ README must be a non-technical person runnable

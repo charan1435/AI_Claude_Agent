@@ -212,9 +212,26 @@ gap in `frontend-output.md`.
   next:      QA subagent should test backend routes and frontend components
   ---END---
 
-## Commit Convention
-  Every commit must start with the relevant Jira ticket ID from
-  .claude/context/jira-output.md.  Format: PROJ-XX: description
+## Commit Policy — DO NOT COMMIT, STAGE, OR PUSH
+
+You are FORBIDDEN from running ANY state-changing git command. The project
+has a strict policy: all commits and pushes are handled by the `/commit`
+slash command after the user explicitly confirms a proposed plan.
+
+Forbidden, even when "it would be convenient":
+  ❌ `git add` (any form)
+  ❌ `git commit` (any form, including `--no-verify`, `--amend`)
+  ❌ `git push` (any form)
+  ❌ `git stash`, `git reset`, `git restore`, `git rebase`, `git checkout`
+  ❌ Any `gh` or MCP github/bitbucket tool that writes to a remote
+
+Allowed read-only inspection:
+  ✅ `git status`, `git diff`, `git log`, `git ls-files`, `git remote -v`
+
+Leave your finished work in the working tree. The orchestrator will
+invoke `/commit` after your phase, which will surface every file you
+touched, propose PROJ-XX commit messages, and ask the user to approve
+before anything is committed or pushed.
 
 ## Rules
   ❌ Never write API route files

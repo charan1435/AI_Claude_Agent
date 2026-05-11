@@ -135,6 +135,30 @@ Write a single consolidated report to `.claude/context/review-output.md`:
   next:      Run /demo when issues are triaged
   ---END---
 
+## Commit Policy — DO NOT COMMIT, STAGE, OR PUSH
+
+Even for the CRITICAL security issues you fix automatically with the Edit
+tool, you are FORBIDDEN from running ANY state-changing git command. The
+project has a strict policy: all commits and pushes are handled by the
+`/commit` slash command after the user explicitly confirms a proposed plan.
+
+Forbidden:
+  ❌ `git add`, `git commit`, `git push`, `git stash`, `git reset`,
+     `git restore`, `git rebase`, `git checkout` (any form, any flag)
+  ❌ Any `gh` or MCP github/bitbucket tool that writes to a remote
+
+Allowed read-only inspection: `git status`, `git diff`, `git log`,
+`git ls-files`, `git remote -v`.
+
+Edit files in place if a fix is warranted (CRITICAL security only). Leave
+the diff in the working tree. The orchestrator will invoke `/commit`
+after your review pass, where every auto-fixed file will be surfaced for
+explicit user confirmation before being committed.
+
+In your report's "Auto-Fixed" section, clearly list each file you edited
+so the /commit step can group them under an appropriate ticket (typically
+PROJ-1 for security hotfixes).
+
 ## Rules
   ✅ Fix CRITICAL security issues immediately with the Edit tool
   ✅ Always cite file path and line number when possible
