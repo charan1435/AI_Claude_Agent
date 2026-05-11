@@ -6,7 +6,13 @@ import { MonthlyTotal } from '@/components/dashboard/MonthlyTotal'
 import { CategoryBreakdown } from '@/components/dashboard/CategoryBreakdown'
 import { ExpenseListSection } from '@/components/expenses/ExpenseListSection'
 import type { Expense } from '@/types/expense'
-import type { ExpenseCategory } from '@/lib/validation/expense'
+import { EXPENSE_CATEGORIES, type ExpenseCategory } from '@/lib/validation/expense'
+import {
+  aggregateMonthlyTotals,
+  getCurrentMonthBoundaries,
+} from '@/lib/expense-aggregation'
+
+const EXPENSE_LIST_COLUMNS = 'id, amount, category, spent_on, note' as const
 
 interface DashboardSearchParams {
   category?: string
@@ -35,62 +41,48 @@ export default async function DashboardPage({
   }
 
   const params = await searchParams
-  const categoryFilter = params.category as ExpenseCategory | undefined
+  const categoryFilter: ExpenseCategory | undefined =
+    params.category && EXPENSE_CATEGORIES.includes(params.category as ExpenseCategory)
+      ? (params.category as ExpenseCategory)
+      : undefined
   const searchQuery = params.q
 
-  // ── Fetch summary ──────────────────────────────────────────────────
-  // Call the Supabase client directly from the server component
-  // rather than going through the API route (avoids cookie forwarding complexity).
-  const now = new Date()
-  const year = now.getUTCFullYear()
-  const month = now.getUTCMonth() + 1
-  const monthStart = `${year}-${String(month).padStart(2, '0')}-01`
-  const nextMonth = month === 12 ? 1 : month + 1
-  const nextYear = month === 12 ? year + 1 : year
-  const monthEnd = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`
+  // ── Month boundaries (UTC for the server component) ────────────────
+  const { monthStart, monthEndExclusive } = getCurrentMonthBoundaries('UTC')
 
-  // Fetch monthly summary via direct Supabase query
-  const { data: monthlyExpenses } = await supabase
+  // ── Build the expense list query ───────────────────────────────────
+  let listQuery = supabase
     .from('expenses')
-    .select('amount, category')
-    .gte('spent_on', monthStart)
-    .lt('spent_on', monthEnd)
-
-  const byCategory: Record<ExpenseCategory, number> = {
-    Food: 0,
-    Transport: 0,
-    Bills: 0,
-    Other: 0,
-  }
-  let monthTotal = 0
-
-  for (const row of monthlyExpenses ?? []) {
-    const cat = row.category as ExpenseCategory
-    const amt = Number(row.amount)
-    byCategory[cat] = (byCategory[cat] ?? 0) + amt
-    monthTotal += amt
-  }
-
-  // ── Fetch expense list ──────────────────────────────────────────────
-  let query = supabase
-    .from('expenses')
-    .select('*')
+    .select(EXPENSE_LIST_COLUMNS)
     .order('spent_on', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(100)
 
   if (categoryFilter) {
-    query = query.eq('category', categoryFilter)
+    listQuery = listQuery.eq('category', categoryFilter)
   }
 
   if (searchQuery) {
-    query = query.ilike('note', `%${searchQuery}%`)
+    listQuery = listQuery.ilike('note', `%${searchQuery}%`)
   }
 
-  const { data: expenses } = await query
+  // ── Fire summary + list queries in parallel ────────────────────────
+  const [summaryResult, listResult] = await Promise.all([
+    supabase
+      .from('expenses')
+      .select('amount, category')
+      .gte('spent_on', monthStart)
+      .lt('spent_on', monthEndExclusive),
+    listQuery,
+  ])
+
+  const { total: monthTotal, byCategory } = aggregateMonthlyTotals(
+    summaryResult.data ?? []
+  )
+  const expenses = listResult.data ?? []
 
   // ── Month label ─────────────────────────────────────────────────────
-  const monthLabel = now.toLocaleDateString('en-US', {
+  const monthLabel = new Date().toLocaleDateString('en-US', {
     month: 'long',
     year: 'numeric',
     timeZone: 'UTC',
@@ -154,7 +146,7 @@ export default async function DashboardPage({
           }
         >
           <ExpenseListSection
-            expenses={(expenses ?? []) as Expense[]}
+            expenses={expenses as Expense[]}
             hasActiveFilter={hasActiveFilter}
           />
         </Suspense>
