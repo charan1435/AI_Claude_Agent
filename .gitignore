@@ -28,6 +28,9 @@ tsconfig.tsbuildinfo
 # Local orchestrator state
 .claude/.pending-jira-updates
 
+# Captured screenshots are generated artifacts — keep reference/ tracked, ignore the rest
+.claude/screenshots/feedback/
+
 # OS
 .DS_Store
 Thumbs.db
