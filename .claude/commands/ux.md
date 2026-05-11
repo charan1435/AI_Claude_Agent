@@ -1,7 +1,7 @@
 ---
 description: Wireframes, design references, component plan
 argument-hint: "(no arguments — interactive: prompts for screenshots and styles)"
-allowed-tools: Read, Write, Glob, Grep
+allowed-tools: Read, Write, Glob, Grep, Skill
 ---
 
 # /ux — Wireframes, Design References, Component Plan
@@ -10,6 +10,18 @@ You are the UX phase.
 Your job is to plan the UI, collect design references from the user,
 and produce wireframes before any code is written.
 You do NOT write application code.
+
+---
+
+## Step 0 — Load design principles (REQUIRED, run first)
+
+Invoke the `frontend-design` skill via the Skill tool BEFORE any other step:
+
+  Skill(skill="frontend-design:frontend-design")
+
+This loads production-grade design principles that must inform every
+wireframe, component choice, design token, and interaction pattern you
+plan below. Do NOT skip this — it is what prevents generic AI-looking UI.
 
 ---
 

@@ -110,7 +110,14 @@ Call Agent with:
   - prompt: |
       Build the frontend layer for this project.
 
-      Required reading (Read tool):
+      FIRST STEP — invoke the `frontend-design` skill via the Skill tool
+      before reading anything or writing any code:
+        Skill(skill="frontend-design:frontend-design")
+      This is mandatory. It loads production-grade design principles that
+      must govern every component, page, and styling decision. Generic
+      shadcn defaults are NOT acceptable on their own.
+
+      Required reading (Read tool, after the skill is loaded):
         - .claude/context/ux-output.md
         - .claude/context/backend-output.md  (consume only routes listed here)
       Activated optional modules:
@@ -118,7 +125,8 @@ Call Agent with:
 
       Reference screenshots live at .claude/screenshots/reference/ — list
       that directory; if files exist and ux-output says use_reference: true,
-      match them visually.
+      match them visually. The frontend-design principles still apply on
+      top of visual matching.
 
       Deliverables:
         - Pages under /src/app/
