@@ -1,0 +1,150 @@
+# General Purpose AI SDLC Orchestrator
+
+## Purpose
+This project-level Claude Code configuration drives the full SDLC for ANY web
+application project. It reads specs, decides the stack, activates optional
+modules, and orchestrates specialized subagents sequentially.
+Human triggers each phase. Subagents do the actual work.
+
+---
+
+## Core Stack (always used)
+- Next.js 14 App Router + TypeScript
+- Tailwind CSS + shadcn/ui
+- Supabase (PostgreSQL + Auth + Storage)
+- Vercel (deployment)
+- GitHub Actions (CI/CD)
+- Jira (planning via MCP)
+
+---
+
+## Optional Modules
+Activated automatically by /plan based on spec signals.
+Only load what the spec requires.
+
+| Signal in spec                              | Module activated                    |
+|---------------------------------------------|-------------------------------------|
+| payment, checkout, purchase, subscription   | .claude/lib/optional/payments.md    |
+| cart, wishlist, multi-step, wizard          | .claude/lib/optional/state-mgmt.md  |
+| live, real-time, notifications, chat        | .claude/lib/optional/realtime.md    |
+| upload, image, file, attachment, avatar     | .claude/lib/optional/file-upload.md |
+| email, confirmation, notification, invite   | .claude/lib/optional/email.md       |
+| Google login, OAuth, social login, GitHub   | .claude/lib/optional/auth-social.md |
+
+---
+
+## Directory Layout
+```
+.claude/
+├── CLAUDE.md                  ← this file (project instructions)
+├── settings.json              ← Claude Code harness config (hooks, permissions)
+├── config/
+│   └── orchestrator.json      ← project-specific config (read by hooks/commands)
+├── commands/                  ← slash commands (one .md per phase)
+├── agents/                    ← real Claude Code subagents (backend, frontend, qa, deploy)
+├── lib/
+│   ├── core/                  ← reference docs read by commands (planning, architecture)
+│   └── optional/              ← optional-module reference docs
+├── hooks/
+│   ├── pre/                   ← PreToolUse bash scripts
+│   └── post/                  ← PostToolUse + Stop bash scripts
+├── context/                   ← phase output files (handoff between commands)
+└── screenshots/
+    ├── reference/             ← user-provided design targets
+    └── feedback/              ← capture + diff output from build pipeline
+```
+
+---
+
+## Orchestrator Rules
+- Main orchestrator (a slash command) stays LEAN — it coordinates, it does not implement
+- Each phase is triggered by the human typing a slash command
+- /develop and /review spawn real subagents via the Agent tool. Each subagent
+  loads ONLY its own .claude/agents/<name>.md instructions plus the minimum
+  context files it needs — this protects the main session's context window
+- Subagents write output to .claude/context/[name]-output.md
+- Next phase reads the previous output file, not the full codebase
+- All pipelines run SEQUENTIALLY — wait for output before next step
+
+---
+
+## Context Files (handover between commands)
+All context lives in .claude/context/
+  plan-output.md       written by /plan
+  jira-output.md       written by /jira
+  adr-output.md        written by /adr
+  ux-output.md         written by /ux
+  backend-output.md    written by backend subagent in /develop
+  frontend-output.md   written by frontend subagent in /develop
+  qa-output.md         written by QA subagent in /develop
+  deploy-output.md     written by deploy subagent in /develop
+  develop-output.md    master summary written by /develop orchestrator
+  cicd-output.md       written by /cicd
+  review-output.md     written by /review
+
+---
+
+## Visual Feedback Loop
+After every UI page is built:
+1. Screenshot the running app (PostToolUse hook on `npm run dev`/`npm run build`)
+2. Compare vs .claude/screenshots/reference/ (if exists)
+3. List visual differences
+4. Fix differences
+5. Screenshot again
+6. Repeat max 3 iterations per page
+7. Save final to .claude/screenshots/feedback/current-state/
+8. Save iteration history to .claude/screenshots/feedback/iterations/
+
+---
+
+## Commit Convention
+Format: PROJ-XXX: short description
+Every commit MUST reference a Jira ticket.
+Pre-hook (PreToolUse on `git commit*`) blocks commits without a ticket ID
+matching `^[A-Z][A-Z0-9]+-[0-9]+`.
+
+Examples:
+  PROJ-1: initial project setup
+  PROJ-4: add products table migration
+  PROJ-7: implement cart drawer component
+  PROJ-11: add checkout e2e test
+
+---
+
+## Security Rules (enforced by hooks + permissions)
+NEVER commit   : .env .env.local .env.production .env.*
+NEVER hardcode : API keys, passwords, tokens, secrets
+NEVER expose   : Supabase service role key client-side
+NEVER read     : .env files directly — use .env.example only
+
+Enforcement:
+- `.claude/settings.json` `permissions.deny` blocks Read/Edit/Write on .env*
+- `secret-scan.sh` runs as PreToolUse on Write/Edit (catches inline secrets)
+- `env-guard.sh` runs as PreToolUse on Write/Edit (catches .env edits)
+- `secret-scan.sh` also runs on `git commit*` and `git add*` (catches staged secrets)
+
+---
+
+## Subagent Handoff Format
+Every subagent ends its work with this block written to its output file:
+
+---HANDOFF---
+agent:      [which agent produced this]
+completed:  [what was done]
+contract:   [routes / schema / components / tests — summaries only]
+modules:    [optional modules that were applied]
+issues:     [anything the next agent needs to watch out for]
+next:       [what the next agent needs to know]
+---END---
+
+---
+
+## Available Commands
+/plan     → read spec, identify app type, activate modules, produce plan
+/jira     → decompose plan into Epic + Stories + Tasks in Jira
+/adr      → generate ADR.md with stack decisions and trade-offs
+/ux       → wireframes, prompt for reference screenshots and CSS
+/develop  → spawn backend → frontend → QA → deploy subagents via Agent tool
+/cicd     → generate GitHub Actions workflows
+/review   → spawn code-quality, security, performance review subagents
+/demo     → generate demo script and talking points
