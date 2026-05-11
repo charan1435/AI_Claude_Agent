@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { useForm, Controller } from 'react-hook-form'
+import { useForm, Controller, useWatch } from 'react-hook-form'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import type { Expense } from '@/types/expense'
@@ -70,7 +70,12 @@ function ExpenseFormInner({ mode, initialValues, onClose }: ExpenseFormInnerProp
     handleSubmit,
     control,
     formState: { errors, isSubmitting },
-  } = useForm<ExpenseFormValues>({ defaultValues })
+  } = useForm<ExpenseFormValues>({ defaultValues, mode: 'onTouched' })
+
+  // Watch amount so the submit button reflects validity before first blur
+  const watchedAmount = useWatch({ control, name: 'amount' })
+  const parsedAmount = parseFloat(watchedAmount)
+  const amountIsPositive = !Number.isNaN(parsedAmount) && parsedAmount > 0
 
   async function onSubmit(values: ExpenseFormValues) {
     setServerError(null)
@@ -120,7 +125,7 @@ function ExpenseFormInner({ mode, initialValues, onClose }: ExpenseFormInnerProp
 
   const title = mode === 'create' ? 'Add expense' : 'Edit expense'
   const submitLabel = mode === 'create' ? 'save' : 'save changes'
-  const canSubmit = !errors.amount && !isSubmitting
+  const canSubmit = amountIsPositive && !errors.amount && !isSubmitting
 
   return (
     <>
