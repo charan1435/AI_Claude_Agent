@@ -22,6 +22,12 @@ out/
 # Test coverage
 coverage/
 
+# TypeScript incremental compile cache
+tsconfig.tsbuildinfo
+
+# Local orchestrator state
+.claude/.pending-jira-updates
+
 # OS
 .DS_Store
 Thumbs.db
