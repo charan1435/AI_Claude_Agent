@@ -5,6 +5,7 @@
 .env.staging
 .env.development
 .env.test
+.env*.local
 *.env
 
 # Dependencies
@@ -17,6 +18,9 @@ __pycache__/
 dist/
 build/
 out/
+
+# Test coverage
+coverage/
 
 # OS
 .DS_Store
