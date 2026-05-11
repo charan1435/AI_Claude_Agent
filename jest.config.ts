@@ -109,7 +109,8 @@ const config: Config = {
   // ---------------------------------------------------------------------------
   collectCoverageFrom: [
     'src/components/**/*.tsx',
-    'src/lib/validation/**/*.ts',
+    'src/lib/**/*.ts',
+    '!src/lib/supabase/**',
     '!src/**/*.d.ts',
     '!src/**/__mocks__/**',
   ],
