@@ -107,6 +107,44 @@ Examples:
   PROJ-1: initial project setup
   PROJ-4: add products table migration
   PROJ-7: implement cart drawer component
+
+---
+
+## Commit Policy (PROJECT-WIDE — APPLIES TO EVERY AGENT)
+
+**No subagent and no main command may stage, commit, push, or run any
+state-changing git command on its own.** All git state changes go through
+the `/commit` slash command, which requires explicit user confirmation
+before staging and a second confirmation before pushing.
+
+Forbidden tool invocations from any subagent or command (other than /commit itself):
+  - `git add` (including `-A`, `-p`, `-u`)
+  - `git commit` (including `--amend`, `--no-verify`)
+  - `git push` (any form)
+  - `git stash`, `git rebase`, `git reset`, `git restore`, `git checkout`
+  - Any `gh pr *` or `gh release *` command
+  - Any MCP github/bitbucket tool that writes (`create_*`, `push_*`, `merge_*`, `update_*`)
+
+Allowed read-only inspection from any subagent:
+  - `git status`, `git diff`, `git log`, `git ls-files`, `git remote -v`
+
+After every main phase (`/plan`, `/jira`, `/adr`, `/ux`, `/develop`,
+`/cicd`, `/review`, `/demo`) the orchestrator MUST invoke
+`Skill(skill="commit")` as its final action before printing the
+completion banner. The `/commit` flow will:
+
+  1. Show `git status` and `git diff --stat` for every change.
+  2. Spawn the `committer` subagent to produce a proposed commit plan
+     (logical groupings + PROJ-XX messages).
+  3. Use AskUserQuestion to confirm the commit plan (yes / edit messages /
+     subset / cancel).
+  4. Stage and commit per the approved plan.
+  5. Use AskUserQuestion to confirm push (current branch / new branch /
+     skip) AND which remote (github / bitbucket / both).
+  6. Push only after the user has explicitly answered "yes".
+
+The user is the only entity authorised to advance from "code in working
+tree" to "commit on remote". This is non-negotiable.
   PROJ-11: add checkout e2e test
 
 ---
@@ -148,3 +186,7 @@ next:       [what the next agent needs to know]
 /cicd     → generate GitHub Actions workflows
 /review   → spawn code-quality, security, performance review subagents
 /demo     → generate demo script and talking points
+/commit   → finalize step: spawn committer subagent for a commit plan, confirm
+            with the user, commit + optionally push (PROJ-XX prefix enforced
+            by hook). Recommended after every main phase that leaves
+            uncommitted changes or unpushed commits.
