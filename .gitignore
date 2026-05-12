@@ -28,6 +28,11 @@ tsconfig.tsbuildinfo
 # Local orchestrator state
 .claude/.pending-jira-updates
 
+# Per-user Jira board selection — each contributor runs /jira's first-run flow
+# once to populate their own copy. The structure is documented in
+# .claude/config/jira-board.example.json (tracked).
+.claude/config/jira-board.json
+
 # Captured screenshots are generated artifacts — keep reference/ tracked, ignore the rest
 .claude/screenshots/feedback/
 

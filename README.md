@@ -173,3 +173,19 @@ This suite verifies that user A cannot read, update, delete, or forge-insert row
 - All secrets are injected via environment variables; no credentials are hardcoded in source.
 - Passwords are never handled by application code — Supabase Auth manages hashing, session JWTs, and refresh tokens.
 - HTTPS everywhere via Vercel; session cookies are secure and HttpOnly.
+
+---
+
+## Development tooling (Claude Code)
+
+This repo includes a `.claude/` orchestrator that drives the full SDLC via slash commands: `/plan → /jira → /adr → /ux → /develop → /cicd → /review → /demo`. Subagents in `.claude/agents/` handle each phase in isolation so the main context stays lean. Plugins and MCP servers are declared in `.claude/settings.json` and `.mcp.json` and install on first launch.
+
+**First-run setup per contributor:**
+
+1. Open the project in Claude Code. Accept the marketplace + plugin trust prompts.
+2. Accept the project MCP server prompts (Playwright, GitHub).
+3. OAuth into your **own** Atlassian account when prompted (via the connector flow at claude.ai).
+4. The first time you run `/jira`, it will prompt for your Atlassian site and Jira project, then save your selections to `.claude/config/jira-board.json`. **That file is gitignored** — every contributor maintains their own. The schema is shown in [`.claude/config/jira-board.example.json`](.claude/config/jira-board.example.json) for reference.
+5. Subsequent `/jira` runs reuse your saved board silently. To switch boards later, run `/jira reconfigure`.
+
+The same per-user pattern applies to the GitHub MCP (uses your PAT or OAuth, never the repo author's).
