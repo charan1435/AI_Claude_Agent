@@ -230,8 +230,8 @@ Allowed read-only inspection:
 
 Leave your finished work in the working tree. The orchestrator will
 invoke `/commit` after your phase, which will surface every file you
-touched, propose PROJ-XX commit messages, and ask the user to approve
-before anything is committed or pushed.
+touched, propose `<JIRA-ID>:<Type>/<description>` commit messages, and
+ask the user to approve before anything is committed or pushed.
 
 ## Rules
   ❌ Never write API route files
