@@ -1,7 +1,7 @@
 ---
 description: Read spec, identify app type, activate optional modules, produce structured plan
-argument-hint: "[spec text | path to spec file (.md/.txt/.pdf/.docx)]"
-allowed-tools: Read, Write, Glob, Grep
+argument-hint: "[--brainstorm] [spec text | path to spec file (.md/.txt/.pdf/.docx)]"
+allowed-tools: Read, Write, Glob, Grep, Skill
 model: claude-opus-4-7
 ---
 
@@ -36,7 +36,72 @@ user knows to check with `/model`.
 
 ---
 
-## Step 1 — Resolve and read the spec
+## Step 1 — Parse arguments and detect `--brainstorm`
+
+Inspect `$ARGUMENTS`:
+
+  1. Trim whitespace and surrounding quotes.
+  2. If the first token is `--brainstorm` (case-insensitive), set
+     `BRAINSTORM=true` and strip it from `$ARGUMENTS`. The remaining
+     text is the spec input (it may be empty — that's fine for
+     brainstorming, since the skill will discover intent through Q&A).
+  3. Otherwise set `BRAINSTORM=false`.
+
+Then branch:
+  - If `BRAINSTORM=true` → go to Step 1a.
+  - Otherwise → go to Step 1b.
+
+---
+
+## Step 1a — Brainstorm-driven spec (opt-in)
+
+The user opted into the interactive brainstorming flow from the
+`superpowers` plugin. Use it to turn an idea or rough spec into a
+fully-formed design before producing the structured plan.
+
+  1. **Verify the plugin is enabled.** If `Skill(skill="superpowers:brainstorming")`
+     is not available in this session, stop and tell the user:
+     `superpowers plugin is not enabled. Add "superpowers@claude-plugins-official": true
+     to .claude/settings.json under enabledPlugins, then re-run /plan --brainstorm.`
+     Do not proceed.
+
+  2. **Hand off to the brainstorming skill.** Invoke it with the seed
+     spec text (or "no seed — explore from scratch" if the remaining
+     `$ARGUMENTS` is empty):
+
+         Skill(skill="superpowers:brainstorming",
+               args="<seed spec or rough idea from $ARGUMENTS>")
+
+     The skill is multi-turn and interactive: it will explore project
+     context, ask clarifying questions one at a time, propose 2-3
+     approaches with trade-offs, present a design, and ultimately
+     write a design doc to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`.
+
+  3. **Wait for the design doc.** Do not advance until the
+     brainstorming skill has saved a design doc AND the user has
+     approved it (per superpowers' HARD-GATE). When control returns:
+
+       - Use `Glob` with pattern `docs/superpowers/specs/*-design.md`
+         and pick the most recently modified file.
+       - `Read` the file in full.
+       - Record its absolute path — this becomes `spec_source` in
+         plan-output.md.
+
+  4. **Use the design doc as the spec.** Treat the contents of the
+     design doc as the authoritative spec for Steps 2 onward. The
+     user has already approved it, so do not invent additional
+     requirements or contradict it — only structure it into the
+     plan-output.md format.
+
+  5. **Cross-reference, don't duplicate.** plan-output.md should
+     reference the design doc by path rather than reproducing it
+     verbatim. Include enough detail for downstream phases
+     (/jira, /adr, /ux, /develop) to act, but keep the design doc
+     as the source of truth.
+
+---
+
+## Step 1b — Resolve and read the spec (default path)
 
 `$ARGUMENTS` may be one of:
   a) Inline spec text pasted by the user.
@@ -46,7 +111,9 @@ user knows to check with `/model`.
 
 Resolution rules:
   1. If `$ARGUMENTS` is empty, ask the user to provide either the spec
-     text or a path to a spec document, then stop until they reply.
+     text, a path to a spec document, or to re-run with `--brainstorm`
+     if they'd like an interactive design session first. Then stop
+     until they reply.
   2. Trim whitespace and surrounding quotes from `$ARGUMENTS`.
   3. Treat `$ARGUMENTS` as a path candidate when it looks like a path
      (contains `/` or `\`, ends in `.md`, `.txt`, `.markdown`, `.rst`,
@@ -65,7 +132,10 @@ Resolution rules:
 Read the spec carefully and fully before doing anything else. If the
 spec is ambiguous or missing a section that downstream steps need
 (features, users, constraints), capture the gap in Step 6 as an
-assumption or risk — do not invent requirements.
+assumption or risk — do not invent requirements. If the spec feels
+genuinely under-specified, suggest the user re-run with
+`/plan --brainstorm <seed>` to refine it interactively before you
+finalize plan-output.md.
 
 ---
 
@@ -157,7 +227,8 @@ Use this exact format:
 # Plan Output
 generated: [timestamp]
 command: /plan
-spec_source: [absolute path to spec file, or "inline ($ARGUMENTS)"]
+spec_source: [absolute path to spec file, "inline ($ARGUMENTS)", or "brainstorm: <path to docs/superpowers/specs/...-design.md>"]
+brainstorm: [yes | no]
 
 ## App Type
 [identified type]
