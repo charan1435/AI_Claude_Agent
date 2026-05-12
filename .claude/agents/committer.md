@@ -30,7 +30,50 @@ Treat this as a survey-only role.
   - `git log <upstream>..HEAD --oneline` (the unpushed commits)
   - `.claude/context/jira-output.md` (for the current ticket-ID set)
   - The actual changed files (use Read sparingly — enough to write an honest message)
-  - `.claude/CLAUDE.md` (for the commit convention: `PROJ-XX: short description`)
+  - `.claude/CLAUDE.md` (for the commit convention:
+    `<JIRA-ID>:<Type>/<description>` — see "Commit message format" below)
+
+## Commit message format
+
+Every proposed commit MUST follow this exact shape:
+
+  `<JIRA-ID>:<Type>/<short description>`
+
+  - `<JIRA-ID>` — a Jira ticket ID matching `[A-Z][A-Z0-9]+-[0-9]+`. Use
+    IDs from `.claude/context/jira-output.md`. When the user has a Jira
+    ticket actively assigned to them, prefer that ticket's ID — query the
+    MCP Jira server (`mcp__claude_ai_Atlassian__searchJiraIssuesUsingJql`
+    with JQL `assignee = currentUser() AND statusCategory != Done`) and
+    pick the one whose summary best matches the changed files. If MCP is
+    unavailable, fall back to `jira-output.md` mapping below.
+  - `<Type>` — derive from the Jira issue type of `<JIRA-ID>`:
+
+        Story / Epic      → Feature
+        Bug               → Bugfix
+        Task              → Task
+        Subtask           → inherit parent's Type (fallback: Task)
+        Has "hotfix" label → Hotfix
+        Anything else     → Chore
+
+    If you cannot determine the issue type (e.g. MCP unavailable, no
+    `jira-output.md`), infer from the changed files:
+      tests only            → Test
+      docs / README only    → Docs
+      deps / config / CI    → Chore
+      refactor (no behaviour change) → Refactor
+      otherwise             → Feature
+
+  - `<description>` — single concise subject line, ≤ ~72 chars, imperative
+    mood, no trailing period. Spaces are allowed.
+
+  - No space after the colon. The slash is literal.
+
+Examples:
+
+  PROJ-1:Chore/initial project setup
+  PROJ-4:Feature/add products table migration
+  PROJ-9:Bugfix/fix checkout total rounding
+  PROJ-14:Test/add checkout e2e coverage
 
 ## Output format
 
@@ -52,19 +95,25 @@ The caller will parse it.
   (empty list is fine — say "none")
 
 ## Proposed new commits
-### 1. <ticket-id>: <one-line message>
+### 1. <JIRA-ID>:<Type>/<one-line description>
 - file: <path>
 - file: <path>
 Rationale: <one sentence — why this group belongs together>
+JiraType:  <Story|Bug|Task|Subtask|Epic|...>  (the source ticket's type)
 
-### 2. <ticket-id>: <one-line message>
+### 2. <JIRA-ID>:<Type>/<one-line description>
 - file: <path>
 Rationale: <one sentence>
+JiraType:  <Story|Bug|Task|Subtask|Epic|...>
 
-(Add as many commits as the grouping calls for. Each commit must:
-  - Start with a PROJ-XX ticket ID (use IDs from jira-output.md when relevant;
-    PROJ-1 is the epic-wide bucket for cross-cutting / chore work).
-  - Have a single concise subject line under ~72 characters.
+(Add as many commits as the grouping calls for. Each commit subject must:
+  - Match `^[A-Z][A-Z0-9]+-[0-9]+:(Feature|Bugfix|Hotfix|Chore|Refactor|Docs|Test|Task)/.+`
+  - Use IDs from jira-output.md or from MCP Jira lookup of issues assigned
+    to the current user; PROJ-1 is the cross-cutting / chore bucket.
+  - Derive `<Type>` from the Jira issue type (see "Commit message format"
+    above) — do NOT pick a Type based purely on file changes when an
+    issue type is known.
+  - Have a single concise subject line under ~72 characters total.
   - Group files by logical change, not by directory. Don't bundle unrelated
     work into one commit.
   - Never include files in .gitignore, .env*, or anything under .claude/.pending-*
@@ -112,7 +161,8 @@ Pick the closest fit. Don't invent ticket numbers.
   - Any `.env`, `.env.*`, `.pem`, `.key`, `credentials*` in the staged/working set
   - Any file > 1 MB
   - Anything under `node_modules/`, `.next/`, `coverage/`, `dist/`
-  - Any commit message you propose that lacks a `PROJ-XX:` prefix
+  - Any commit message you propose that does not match the regex
+    `^[A-Z][A-Z0-9]+-[0-9]+:(Feature|Bugfix|Hotfix|Chore|Refactor|Docs|Test|Task)/.+`
   - Any unpushed commit on `main` / `master` that looks like a force-push candidate
 
 ## Rules

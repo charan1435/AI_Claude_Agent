@@ -98,15 +98,32 @@ After every UI page is built:
 ---
 
 ## Commit Convention
-Format: PROJ-XXX: short description
-Every commit MUST reference a Jira ticket.
-Pre-hook (PreToolUse on `git commit*`) blocks commits without a ticket ID
-matching `^[A-Z][A-Z0-9]+-[0-9]+`.
+Format: `<JIRA-ID>:<Type>/<short description>`
+  - `<JIRA-ID>` — the Jira ticket assigned to YOU (the human committer).
+    The committer subagent must look this up via MCP Jira (issue type +
+    summary) before proposing a message.
+  - `<Type>` — one of: `Feature`, `Bugfix`, `Hotfix`, `Chore`, `Refactor`,
+    `Docs`, `Test`, `Task`.
+  - No space after the colon. The slash is literal. Spaces are allowed in
+    the description tail.
+
+Jira issue type → commit `<Type>` mapping (used by the committer agent):
+  Story  / Epic      → Feature
+  Bug                → Bugfix
+  Task               → Task
+  Subtask            → inherit parent's Type (fallback: Task)
+  Hotfix label       → Hotfix
+  Anything else      → Chore
+
+Pre-hook (PreToolUse on `git commit*`) enforces the regex:
+  `^[A-Z][A-Z0-9]+-[0-9]+:(Feature|Bugfix|Hotfix|Chore|Refactor|Docs|Test|Task)/.+`
 
 Examples:
-  PROJ-1: initial project setup
-  PROJ-4: add products table migration
-  PROJ-7: implement cart drawer component
+  PROJ-1:Chore/initial project setup
+  PROJ-4:Feature/add products table migration
+  PROJ-7:Feature/implement cart drawer component
+  PROJ-9:Bugfix/fix checkout total rounding
+  PROJ-14:Test/add checkout e2e coverage
 
 ---
 
@@ -135,7 +152,7 @@ completion banner. The `/commit` flow will:
 
   1. Show `git status` and `git diff --stat` for every change.
   2. Spawn the `committer` subagent to produce a proposed commit plan
-     (logical groupings + PROJ-XX messages).
+     (logical groupings + `<JIRA-ID>:<Type>/<description>` messages).
   3. Use AskUserQuestion to confirm the commit plan (yes / edit messages /
      subset / cancel).
   4. Stage and commit per the approved plan.
@@ -145,7 +162,6 @@ completion banner. The `/commit` flow will:
 
 The user is the only entity authorised to advance from "code in working
 tree" to "commit on remote". This is non-negotiable.
-  PROJ-11: add checkout e2e test
 
 ---
 
@@ -187,6 +203,7 @@ next:       [what the next agent needs to know]
 /review   → spawn code-quality, security, performance review subagents
 /demo     → generate demo script and talking points
 /commit   → finalize step: spawn committer subagent for a commit plan, confirm
-            with the user, commit + optionally push (PROJ-XX prefix enforced
-            by hook). Recommended after every main phase that leaves
-            uncommitted changes or unpushed commits.
+            with the user, commit + optionally push
+            (`<JIRA-ID>:<Type>/<description>` prefix enforced by hook).
+            Recommended after every main phase that leaves uncommitted
+            changes or unpushed commits.

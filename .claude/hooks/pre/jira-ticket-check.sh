@@ -1,6 +1,8 @@
 #!/bin/bash
-# PRE-HOOK: JIRA TICKET ID CHECK
-# Blocks commits that don't reference a Jira ticket
+# PRE-HOOK: JIRA TICKET ID + TYPE-PREFIX CHECK
+# Blocks commits whose subject line does not follow
+#   <JIRA-ID>:<Type>/<description>
+# where <Type> ∈ {Feature, Bugfix, Hotfix, Chore, Refactor, Docs, Test, Task}
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -15,18 +17,22 @@ if [ ! -f "$MSG_FILE" ]; then
   exit 0
 fi
 
-MSG=$(cat "$MSG_FILE")
-JIRA_PATTERN="[A-Z][A-Z0-9]+-[0-9]+"
+# Validate only the SUBJECT line (first line). Body is unrestricted.
+SUBJECT=$(head -1 "$MSG_FILE")
+PATTERN='^[A-Z][A-Z0-9]+-[0-9]+:(Feature|Bugfix|Hotfix|Chore|Refactor|Docs|Test|Task)/.+'
 
-if ! echo "$MSG" | grep -qE "$JIRA_PATTERN"; then
+if ! echo "$SUBJECT" | grep -qE "$PATTERN"; then
   echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
   echo -e "${RED}🚫 JIRA CHECK: COMMIT BLOCKED${NC}"
-  echo -e "${RED}   Every commit must include a Jira ticket ID.${NC}"
-  echo -e "${RED}   Format: PROJ-123: your description${NC}"
-  echo -e "${RED}   Example: PROJ-42: add product listing page${NC}"
+  echo -e "${RED}   Subject must match: <JIRA-ID>:<Type>/<description>${NC}"
+  echo -e "${RED}   <Type> ∈ Feature | Bugfix | Hotfix | Chore | Refactor | Docs | Test | Task${NC}"
+  echo -e "${RED}   Examples:${NC}"
+  echo -e "${RED}     PROJ-42:Feature/add product listing page${NC}"
+  echo -e "${RED}     PROJ-7:Bugfix/fix cart drawer overflow${NC}"
+  echo -e "${RED}     PROJ-1:Chore/bump dependencies${NC}"
   echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
   exit 1
 fi
 
-echo -e "${GREEN}✓ JIRA CHECK: Ticket ID found.${NC}"
+echo -e "${GREEN}✓ JIRA CHECK: Ticket ID + type prefix valid.${NC}"
 exit 0

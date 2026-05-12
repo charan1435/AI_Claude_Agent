@@ -93,8 +93,10 @@ url:   [url]
 - PROJ-XX: [title] (under PROJ-XX)
 
 ## Commit Prefix Convention
-All commits must start with the relevant ticket ID.
-Example: PROJ-4: add products migration
+All commit subjects must match `<JIRA-ID>:<Type>/<description>` where
+`<Type>` is derived from the source Jira issue type (Story/Epic→Feature,
+Bug→Bugfix, Task→Task, Subtask→inherits parent, else→Chore).
+Example: PROJ-4:Feature/add products migration
 
 ---HANDOFF---
 agent:     jira

@@ -13,7 +13,7 @@ talk to the user directly. Your job:
   1. Survey the current git state and show the user a full source-control view.
   2. Spawn the `committer` subagent to produce a structured commit plan.
   3. Confirm the plan with the user via AskUserQuestion.
-  4. Stage and commit using the project's `PROJ-XX:` convention.
+  4. Stage and commit using the project's `<JIRA-ID>:<Type>/<description>` convention.
   5. Confirm the push (and which remote, and which branch) via AskUserQuestion.
   6. Push only after explicit user confirmation in this turn.
 
@@ -91,7 +91,11 @@ Call the Agent tool with:
       `.claude/context/jira-output.md` for the project's ticket IDs.
 
       Return the plan in the exact Markdown shape defined in your agent
-      description, with one PROJ-XX message per proposed commit.
+      description, with one `<JIRA-ID>:<Type>/<description>` message per
+      proposed commit. Look up the user's assigned Jira tickets via MCP
+      (`mcp__claude_ai_Atlassian__searchJiraIssuesUsingJql`) and derive
+      `<Type>` from each ticket's issue type per the mapping in your
+      agent definition.
 
 Wait for the agent's response. Parse the plan.
 
@@ -113,7 +117,7 @@ Then call AskUserQuestion:
   "header": "Commit plan",
   "options": [
     { "label": "Yes — commit as proposed (Recommended)",
-      "description": "Stage and commit exactly as listed above using the PROJ-XX convention." },
+      "description": "Stage and commit exactly as listed using <JIRA-ID>:<Type>/<description>." },
     { "label": "Edit messages first",
       "description": "I'll let you rewrite any commit messages before I stage anything." },
     { "label": "Commit a subset",
@@ -146,7 +150,12 @@ For each approved commit in order:
      Always explicit filenames.
 
   2. Create the commit:
-     `git commit -m "PROJ-XX: <subject>"`
+     `git commit -m "<JIRA-ID>:<Type>/<subject>"`
+
+     Where `<Type>` ∈ Feature | Bugfix | Hotfix | Chore | Refactor | Docs |
+     Test | Task — chosen by the committer subagent from the Jira issue type
+     of `<JIRA-ID>`. Use the exact subject the committer proposed (or the
+     user-edited replacement). No space after the colon.
 
      The pre-commit hooks will run (jira-ticket-check, secret-scan,
      lint-check). If a hook fails:
@@ -282,7 +291,7 @@ free to continue — your job here is done.
 
 ## Failure modes to handle gracefully
 
-  - **Pre-commit hook rejects (PROJ-XX missing, secret found, lint fails):**
+  - **Pre-commit hook rejects (subject doesn't match `<JIRA-ID>:<Type>/<description>`, secret found, lint fails):**
     Surface the error, do not bypass, ask the user how to proceed.
   - **Remote rejects push (non-fast-forward, protected branch):**
     Show the message, offer to rebase manually or open the new-branch

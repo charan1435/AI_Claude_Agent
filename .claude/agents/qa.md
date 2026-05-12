@@ -147,8 +147,9 @@ Allowed read-only inspection: `git status`, `git diff`, `git log`,
 `git ls-files`, `git remote -v`.
 
 Leave your test files in the working tree. The orchestrator will invoke
-`/commit` after your phase to surface every file, propose PROJ-XX commit
-messages, and ask the user to approve before anything is committed.
+`/commit` after your phase to surface every file, propose
+`<JIRA-ID>:<Type>/<description>` commit messages, and ask the user to
+approve before anything is committed.
 
 ## Rules
   ✅ Test behaviour, not implementation

@@ -139,8 +139,8 @@ Allowed read-only inspection: `git status`, `git diff`, `git log`,
 
 Leave your README/env.example/etc. edits in the working tree. The
 orchestrator will invoke `/commit` after your phase to surface every
-file, propose PROJ-XX commit messages, and ask the user to approve
-before anything is committed.
+file, propose `<JIRA-ID>:<Type>/<description>` commit messages, and ask
+the user to approve before anything is committed.
 
 ## Rules
   ✅ Fail deploy checklist loudly — do not silently skip items
