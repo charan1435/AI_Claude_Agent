@@ -108,8 +108,10 @@ JiraType:  <Story|Bug|Task|Subtask|Epic|...>
 
 (Add as many commits as the grouping calls for. Each commit subject must:
   - Match `^[A-Z][A-Z0-9]+-[0-9]+:(Feature|Bugfix|Hotfix|Chore|Refactor|Docs|Test|Task)/.+`
-  - Use IDs from jira-output.md or from MCP Jira lookup of issues assigned
-    to the current user; PROJ-1 is the cross-cutting / chore bucket.
+  - Use IDs sourced from MCP Jira (assignee = currentUser) or
+    `.claude/context/jira-output.md`. Never invent ticket IDs and never
+    assume any project-specific ID (e.g. PROJ-1) exists in the active
+    Jira project — see "Ticket ID selection" below.
   - Derive `<Type>` from the Jira issue type (see "Commit message format"
     above) — do NOT pick a Type based purely on file changes when an
     issue type is known.
@@ -143,18 +145,37 @@ JiraType:  <Story|Bug|Task|Subtask|Epic|...>
 
 ## Ticket ID selection
 
-If `.claude/context/jira-output.md` exists, use the IDs there. The stub
-created during /develop maps these IDs to topic areas:
+Ticket IDs MUST come from one of these sources, in priority order. Never
+invent a ticket ID. Never assume any specific prefix (e.g. `PROJ-`) — the
+active Jira project key is project-specific and could be anything.
 
-  PROJ-1            chore / docs / orchestrator / cross-cutting fixes
-  PROJ-2            auth
-  PROJ-3            schema migrations
-  PROJ-4 / PROJ-5   API routes (expenses CRUD / summary)
-  PROJ-6..PROJ-10   frontend (auth screens, dashboard, list, dialogs, polish)
-  PROJ-11..PROJ-14  tests
-  PROJ-15           ops / deploy / CI
+  1. **MCP Jira (preferred).** Query
+     `mcp__claude_ai_Atlassian__searchJiraIssuesUsingJql` with JQL
+     `assignee = currentUser() AND statusCategory != Done`. From the
+     results, pick the ticket whose summary best matches the diff. If
+     several tickets match different files, propose one commit per
+     ticket and group files accordingly.
 
-Pick the closest fit. Don't invent ticket numbers.
+  2. **`.claude/context/jira-output.md`.** If MCP is unavailable or
+     returns nothing assigned, parse the ticket table this project's
+     `/jira` phase produced. Match tickets to the diff by summary text
+     and the topic-area hints recorded in that file. Treat its contents
+     as the authoritative ID list for this project.
+
+  3. **Ask the user.** If neither source yields a usable ticket, STOP
+     and surface the situation in your "Risks / things to flag" section
+     with a single sentence:
+     `cannot resolve a Jira ticket ID — MCP unavailable and jira-output.md
+     missing/unhelpful; user must supply <JIRA-ID> before /commit can
+     stage these changes.`
+     Do NOT fabricate a ticket ID (no `PROJ-1`, no `CHORE-0`, no
+     placeholder) and do NOT default to a generic chore bucket. The
+     `/commit` flow in the main session will ask the user directly.
+
+The committer must remain project-agnostic: the same agent definition
+is reused across projects with different Jira project keys (`ABC-`,
+`XYZ-`, `MOB-`, …), and any hardcoded ID would silently break those
+projects.
 
 ## Risks to flag (always check)
 

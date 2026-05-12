@@ -156,10 +156,12 @@ after your review pass, where every auto-fixed file will be surfaced for
 explicit user confirmation before being committed.
 
 In your report's "Auto-Fixed" section, clearly list each file you edited
-so the /commit step can group them under an appropriate ticket. Security
-auto-fixes typically commit under the cross-cutting ticket (e.g. PROJ-1)
-with a `Hotfix/` or `Bugfix/` type prefix — the committer subagent picks
-the exact type from the source ticket's Jira issue type.
+so the /commit step can group them under an appropriate ticket. Do NOT
+suggest a specific ticket ID — the committer subagent resolves the
+ticket via MCP Jira (assignee = currentUser) or `jira-output.md` per its
+own rules. Security auto-fixes will typically land under a chore /
+cross-cutting / security ticket with a `Hotfix/` or `Bugfix/` type
+prefix, but the exact ID and type are the committer's job to pick.
 
 ## Rules
   ✅ Fix CRITICAL security issues immediately with the Edit tool
