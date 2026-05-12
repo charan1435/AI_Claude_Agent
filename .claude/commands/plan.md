@@ -1,12 +1,19 @@
 ---
 description: Read spec, identify app type, activate optional modules, produce structured plan
-argument-hint: "[spec text or path to spec file]"
+argument-hint: "[spec text | path to spec file (.md/.txt/.pdf/.docx)]"
 allowed-tools: Read, Write, Glob, Grep
+model: claude-opus-4-7
 ---
 
 # /plan — Read Spec, Identify Stack, Activate Modules
 
-You are the PLANNING phase.
+ultrathink
+
+You are the PLANNING phase. Operate as a deliberate, planning-mode agent:
+think deeply before you write, evaluate trade-offs explicitly, and only
+emit the structured plan once you have a high-confidence picture of the
+spec, stack fit, and risks.
+
 Your only job is to read the spec and produce a structured plan.
 You do NOT write code. You do NOT create Jira tickets.
 
@@ -15,9 +22,50 @@ Optional: read `.claude/lib/core/planning.md` for the planning rubric
 
 ---
 
-## Step 1 — Read the spec
-The spec is provided in $ARGUMENTS.
-Read it carefully and fully before doing anything else.
+## Step 0 — Announce active model (sanity check)
+
+Before doing anything else, print exactly one line so the user can verify
+the model pin took effect:
+
+  `▶ /plan running on: <model id from your runtime, e.g. claude-opus-4-7>`
+
+Use the actual model identifier from your current runtime — do not
+hardcode a value. If you cannot determine the model id, print
+`▶ /plan running on: unknown (model pin may not be honored)` so the
+user knows to check with `/model`.
+
+---
+
+## Step 1 — Resolve and read the spec
+
+`$ARGUMENTS` may be one of:
+  a) Inline spec text pasted by the user.
+  b) A path to a spec file (e.g. `./docs/spec.md`, `specs/project.txt`,
+     `C:\Users\me\spec.pdf`). Path may be relative or absolute, with
+     forward or back slashes.
+
+Resolution rules:
+  1. If `$ARGUMENTS` is empty, ask the user to provide either the spec
+     text or a path to a spec document, then stop until they reply.
+  2. Trim whitespace and surrounding quotes from `$ARGUMENTS`.
+  3. Treat `$ARGUMENTS` as a path candidate when it looks like a path
+     (contains `/` or `\`, ends in `.md`, `.txt`, `.markdown`, `.rst`,
+     `.pdf`, `.docx`, or starts with `./`, `../`, `~`, a drive letter,
+     or `/`). Otherwise treat it as inline text.
+  4. For a path candidate:
+       - Use `Read` to load the file. For `.pdf`, pass `pages` if the
+         document is large (>10 pages); start with `pages: "1-20"` and
+         iterate further pages only if Step 2 onward still has gaps.
+       - If `Read` fails (file not found), fall back to `Glob` to find
+         likely matches (`**/*spec*.md`, `**/*requirements*.md`,
+         `**/*brief*.md`) and ask the user to confirm before proceeding.
+       - Record the resolved absolute path; reference it in the output.
+  5. For inline text, treat `$ARGUMENTS` itself as the spec body.
+
+Read the spec carefully and fully before doing anything else. If the
+spec is ambiguous or missing a section that downstream steps need
+(features, users, constraints), capture the gap in Step 6 as an
+assumption or risk — do not invent requirements.
 
 ---
 
@@ -109,6 +157,7 @@ Use this exact format:
 # Plan Output
 generated: [timestamp]
 command: /plan
+spec_source: [absolute path to spec file, or "inline ($ARGUMENTS)"]
 
 ## App Type
 [identified type]
